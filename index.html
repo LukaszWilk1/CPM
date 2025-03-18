@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagram CPM - Network</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        .node circle {
+            fill: white;
+            stroke: black;
+            stroke-width: 2px;
+        }
+
+        .link {
+            fill: none;
+            stroke: black;
+            stroke-width: 2px;
+        }
+
+        .label {
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            text-anchor: middle;
+            fill: black;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Diagram CPM - Network</h1>
+    <svg width="800" height="500"></svg>
+
+    <script>
+        const tasks = [
+            { id: 'A', duration: 2, from: 1, to: 2 }, { id: 'B', duration: 4, from: 2, to: 3 },
+            { id: 'C', duration: 3, from: 1, to: 3 }, { id: 'D', duration: 5, from: 3, to: 4 },
+            { id: 'E', duration: 2, from: 2, to: 5 }, { id: 'F', duration: 3, from: 4, to: 6 },
+            { id: 'G', duration: 4, from: 5, to: 6 }, { id: 'H', duration: 2, from: 6, to: 7 }
+        ];
+
+        const nodes = {};
+        tasks.forEach(({ from, to }) => {
+            if (!nodes[from]) nodes[from] = { id: from };
+            if (!nodes[to]) nodes[to] = { id: to };
+        });
+        
+        const links = tasks.map(({ id, duration, from, to }) => ({
+            source: nodes[from],
+            target: nodes[to],
+            label: `${id} (${duration}h)`
+        }));
+
+        const nodeArray = Object.values(nodes);
+        
+        const width = 800, height = 500;
+        const svg = d3.select("svg");
+
+        svg.append("defs").append("marker")
+            .attr("id", "arrowhead")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 20)
+            .attr("refY", 0)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-3L6,0L0,3")
+            .attr("fill", "black");
+
+        const simulation = d3.forceSimulation(nodeArray)
+            .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+        const link = svg.selectAll(".link")
+            .data(links)
+            .enter().append("line")
+            .attr("class", "link")
+            .attr("marker-end", "url(#arrowhead)");
+
+        const linkLabels = svg.selectAll(".label")
+            .data(links)
+            .enter().append("text")
+            .attr("class", "label")
+            .text(d => d.label);
+
+        const node = svg.selectAll(".node")
+            .data(nodeArray)
+            .enter().append("g")
+            .attr("class", "node");
+
+        node.append("circle").attr("r", 15);
+        node.append("text").attr("dy", 5).attr("text-anchor", "middle").text(d => d.id);
+
+        simulation.on("tick", () => {
+            link.attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x - 5)
+                .attr("y2", d => d.target.y - 5);
+
+            linkLabels.attr("x", d => (d.source.x + d.target.x) / 2)
+                      .attr("y", d => (d.source.y + d.target.y) / 2 - 10);
+
+            node.attr("transform", d => `translate(${d.x},${d.y})`);
+        });
+    </script>
+</body>
+
+</html>
